@@ -2,4 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/HL7EndpointMirror.Functions/HL7EndpointMirror.Functions.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/HL7EndpointMirror.Tests/HL7EndpointMirror.Tests.csproj" />
+  </Folder>
 </Solution>
