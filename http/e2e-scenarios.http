@@ -1,0 +1,194 @@
+### HL7 Endpoint Mirror — End-to-End Scenarios
+### Run these in order to walk through a complete test cycle
+
+@baseUrl = http://localhost:7071/api
+@functionKey = YOUR_LOCAL_FUNCTION_KEY_HERE
+
+# ─────────────────────────────────────────────
+# SCENARIO 1 — Happy path baseline
+# Expected: health ok, config defaults, message accepted
+# ─────────────────────────────────────────────
+
+### Step 1a — Verify service is healthy
+GET {{baseUrl}}/v1/health
+
+###
+
+### Step 1b — Confirm chaos is disabled (default state)
+GET {{baseUrl}}/v1/admin/chaos
+x-functions-key: {{functionKey}}
+
+###
+
+### Step 1c — Send a valid HL7 message — expect MSA|AA|BASELINE-001
+POST {{baseUrl}}/v1/hl7/messages
+Content-Type: application/hl7-v2
+x-functions-key: {{functionKey}}
+X-Message-Id: scenario-1-baseline
+
+MSH|^~\&|GLS|LAB|MIRROR|TEST|20260219120000||ORM^O01|BASELINE-001|P|2.4
+PID|1||PAT001^^^LAB^MR
+
+# ─────────────────────────────────────────────
+# SCENARIO 2 — Chaos mode: total failure
+# Expected: all messages return 503
+# ─────────────────────────────────────────────
+
+###
+
+### Step 2a — Enable 100% chaos failure
+PUT {{baseUrl}}/v1/admin/chaos
+Content-Type: application/json
+x-functions-key: {{functionKey}}
+
+{
+  "isEnabled": true,
+  "failureRatePercent": 100,
+  "defaultErrorType": "503",
+  "latencySimulation": { "isEnabled": false, "delayMs": 0 }
+}
+
+###
+
+### Step 2b — Send message — expect 503 (run multiple times to confirm)
+POST {{baseUrl}}/v1/hl7/messages
+Content-Type: application/hl7-v2
+x-functions-key: {{functionKey}}
+X-Message-Id: scenario-2-chaos-msg
+
+MSH|^~\&|GLS|LAB|MIRROR|TEST|20260219120000||ORM^O01|CHAOS-001|P|2.4
+PID|1||PAT001^^^LAB^MR
+
+###
+
+### Step 2c — Confirm chaos state via GET
+GET {{baseUrl}}/v1/admin/chaos
+x-functions-key: {{functionKey}}
+
+# ─────────────────────────────────────────────
+# SCENARIO 3 — Chaos mode: partial failure (25%)
+# Expected: roughly 1 in 4 requests fail
+# Run Step 3b multiple times to observe mixed results
+# ─────────────────────────────────────────────
+
+###
+
+### Step 3a — Set chaos to 25% failure
+PUT {{baseUrl}}/v1/admin/chaos
+Content-Type: application/json
+x-functions-key: {{functionKey}}
+
+{
+  "isEnabled": true,
+  "failureRatePercent": 25,
+  "defaultErrorType": "503",
+  "latencySimulation": { "isEnabled": false, "delayMs": 0 }
+}
+
+###
+
+### Step 3b — Send message — run this 8-10 times, expect ~25% 503s
+POST {{baseUrl}}/v1/hl7/messages
+Content-Type: application/hl7-v2
+x-functions-key: {{functionKey}}
+X-Message-Id: scenario-3-partial
+
+MSH|^~\&|GLS|LAB|MIRROR|TEST|20260219120000||ORM^O01|PARTIAL-001|P|2.4
+PID|1||PAT001^^^LAB^MR
+
+# ─────────────────────────────────────────────
+# SCENARIO 4 — Latency simulation
+# Expected: response visibly delayed ~2 seconds
+# ─────────────────────────────────────────────
+
+###
+
+### Step 4a — Enable 2 second latency, no failures
+PUT {{baseUrl}}/v1/admin/chaos
+Content-Type: application/json
+x-functions-key: {{functionKey}}
+
+{
+  "isEnabled": false,
+  "failureRatePercent": 0,
+  "defaultErrorType": "500",
+  "latencySimulation": { "isEnabled": true, "delayMs": 2000 }
+}
+
+###
+
+### Step 4b — Send message — should succeed but take ~2s
+POST {{baseUrl}}/v1/hl7/messages
+Content-Type: application/hl7-v2
+x-functions-key: {{functionKey}}
+X-Message-Id: scenario-4-latency
+
+MSH|^~\&|GLS|LAB|MIRROR|TEST|20260219120000||ORM^O01|LATENCY-001|P|2.4
+PID|1||PAT001^^^LAB^MR
+
+# ─────────────────────────────────────────────
+# SCENARIO 5 — Error handling
+# Expected: correct error codes and messages
+# ─────────────────────────────────────────────
+
+###
+
+### Step 5a — Reset chaos to disabled first
+PUT {{baseUrl}}/v1/admin/chaos
+Content-Type: application/json
+x-functions-key: {{functionKey}}
+
+{
+  "isEnabled": false,
+  "failureRatePercent": 10,
+  "defaultErrorType": "500",
+  "latencySimulation": { "isEnabled": false, "delayMs": 0 }
+}
+
+###
+
+### Step 5b — Wrong content type — expect 415
+POST {{baseUrl}}/v1/hl7/messages
+Content-Type: application/json
+x-functions-key: {{functionKey}}
+X-Message-Id: scenario-5-wrong-type
+
+{"not": "hl7"}
+
+###
+
+### Step 5c — Invalid HL7 (no MSH) — expect 400 + AR ACK
+POST {{baseUrl}}/v1/hl7/messages
+Content-Type: application/hl7-v2
+x-functions-key: {{functionKey}}
+X-Message-Id: scenario-5-bad-hl7
+
+PID|1||PAT001^^^LAB^MR
+
+###
+
+### Step 5d — Missing auth key — expect 401
+POST {{baseUrl}}/v1/hl7/messages
+Content-Type: application/hl7-v2
+X-Message-Id: scenario-5-no-auth
+
+MSH|^~\&|GLS|LAB|MIRROR|TEST|20260219120000||ORM^O01|MSG_NOAUTH|P|2.4
+
+# ─────────────────────────────────────────────
+# RESET — Always run this after testing
+# Leaves the service in a known clean state
+# ─────────────────────────────────────────────
+
+###
+
+### RESET — Disable all chaos, restore defaults
+PUT {{baseUrl}}/v1/admin/chaos
+Content-Type: application/json
+x-functions-key: {{functionKey}}
+
+{
+  "isEnabled": false,
+  "failureRatePercent": 10,
+  "defaultErrorType": "500",
+  "latencySimulation": { "isEnabled": false, "delayMs": 0 }
+}

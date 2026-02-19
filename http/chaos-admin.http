@@ -1,0 +1,139 @@
+### HL7 Endpoint Mirror — Chaos Config Admin
+### All requests require x-functions-key header
+
+@baseUrl = http://localhost:7071/api
+@functionKey = YOUR_LOCAL_FUNCTION_KEY_HERE
+
+# ---
+
+### 1. GET current chaos config — expect 200 + current config JSON
+GET {{baseUrl}}/v1/admin/chaos
+x-functions-key: {{functionKey}}
+
+###
+
+### 2. Enable chaos at 25% failure rate — expect 200 + updated config
+PUT {{baseUrl}}/v1/admin/chaos
+Content-Type: application/json
+x-functions-key: {{functionKey}}
+
+{
+  "isEnabled": true,
+  "failureRatePercent": 25,
+  "defaultErrorType": "503",
+  "latencySimulation": {
+    "isEnabled": false,
+    "delayMs": 0
+  }
+}
+
+###
+
+### 3. Enable chaos at 100% failure rate — every message request should now return 503
+PUT {{baseUrl}}/v1/admin/chaos
+Content-Type: application/json
+x-functions-key: {{functionKey}}
+
+{
+  "isEnabled": true,
+  "failureRatePercent": 100,
+  "defaultErrorType": "503",
+  "latencySimulation": {
+    "isEnabled": false,
+    "delayMs": 0
+  }
+}
+
+###
+
+### 4. Enable chaos with 429 Too Many Requests
+PUT {{baseUrl}}/v1/admin/chaos
+Content-Type: application/json
+x-functions-key: {{functionKey}}
+
+{
+  "isEnabled": true,
+  "failureRatePercent": 50,
+  "defaultErrorType": "429",
+  "latencySimulation": {
+    "isEnabled": false,
+    "delayMs": 0
+  }
+}
+
+###
+
+### 5. Enable latency simulation — responses delayed by 2 seconds
+PUT {{baseUrl}}/v1/admin/chaos
+Content-Type: application/json
+x-functions-key: {{functionKey}}
+
+{
+  "isEnabled": false,
+  "failureRatePercent": 0,
+  "defaultErrorType": "500",
+  "latencySimulation": {
+    "isEnabled": true,
+    "delayMs": 2000
+  }
+}
+
+###
+
+### 6. Reset to defaults — chaos disabled, back to normal operation
+PUT {{baseUrl}}/v1/admin/chaos
+Content-Type: application/json
+x-functions-key: {{functionKey}}
+
+{
+  "isEnabled": false,
+  "failureRatePercent": 10,
+  "defaultErrorType": "500",
+  "latencySimulation": {
+    "isEnabled": false,
+    "delayMs": 0
+  }
+}
+
+###
+
+### 7. Validation error — failure rate out of range — expect 400
+PUT {{baseUrl}}/v1/admin/chaos
+Content-Type: application/json
+x-functions-key: {{functionKey}}
+
+{
+  "isEnabled": true,
+  "failureRatePercent": 150,
+  "defaultErrorType": "500",
+  "latencySimulation": {
+    "isEnabled": false,
+    "delayMs": 0
+  }
+}
+
+###
+
+### 8. Validation error — delay out of range — expect 400
+PUT {{baseUrl}}/v1/admin/chaos
+Content-Type: application/json
+x-functions-key: {{functionKey}}
+
+{
+  "isEnabled": false,
+  "failureRatePercent": 10,
+  "defaultErrorType": "500",
+  "latencySimulation": {
+    "isEnabled": true,
+    "delayMs": 99999
+  }
+}
+
+###
+
+### 9. Malformed JSON body — expect 400
+PUT {{baseUrl}}/v1/admin/chaos
+Content-Type: application/json
+x-functions-key: {{functionKey}}
+
+{ this is not valid json

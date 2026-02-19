@@ -1,0 +1,85 @@
+### HL7 Endpoint Mirror — HL7 Message Ingestion
+### All requests require x-functions-key header
+
+@baseUrl = http://localhost:7071/api
+@functionKey = YOUR_LOCAL_FUNCTION_KEY_HERE
+
+# ---
+
+### 1. Valid HL7 message — expect 200 + HL7 ACK (MSA|AA|MSG001)
+POST {{baseUrl}}/v1/hl7/messages
+Content-Type: application/hl7-v2
+x-functions-key: {{functionKey}}
+X-Message-Id: test-msg-001
+
+MSH|^~\&|GLS|LAB|MIRROR|TEST|20260219120000||ORM^O01|MSG001|P|2.4
+PID|1||PAT001^^^LAB^MR
+
+###
+
+### 2. Different MessageControlId — verify ACK echoes correct ID (MSA|AA|CTRL-XYZ-789)
+POST {{baseUrl}}/v1/hl7/messages
+Content-Type: application/hl7-v2
+x-functions-key: {{functionKey}}
+X-Message-Id: test-msg-002
+
+MSH|^~\&|GLS|LAB|MIRROR|TEST|20260219120000||ORM^O01|CTRL-XYZ-789|P|2.4
+PID|1||PAT002^^^LAB^MR
+
+###
+
+### 3. No X-Message-Id header — expect 200, middleware generates ID automatically
+POST {{baseUrl}}/v1/hl7/messages
+Content-Type: application/hl7-v2
+x-functions-key: {{functionKey}}
+
+MSH|^~\&|GLS|LAB|MIRROR|TEST|20260219120000||ORM^O01|MSG003|P|2.4
+PID|1||PAT003^^^LAB^MR
+
+###
+
+### 4. Wrong Content-Type — expect 415 Unsupported Media Type
+POST {{baseUrl}}/v1/hl7/messages
+Content-Type: application/json
+x-functions-key: {{functionKey}}
+X-Message-Id: test-wrong-content-type
+
+{"test": "this is not hl7"}
+
+###
+
+### 5. Empty body — expect 400 Bad Request
+POST {{baseUrl}}/v1/hl7/messages
+Content-Type: application/hl7-v2
+x-functions-key: {{functionKey}}
+X-Message-Id: test-empty-body
+
+###
+
+### 6. Invalid HL7 — no MSH segment — expect 400 + AR ACK code
+POST {{baseUrl}}/v1/hl7/messages
+Content-Type: application/hl7-v2
+x-functions-key: {{functionKey}}
+X-Message-Id: test-invalid-hl7
+
+PID|1||PAT001^^^LAB^MR
+ORC|NW|ORD001
+
+###
+
+### 7. MSH segment too short — missing MessageControlId — expect 400
+POST {{baseUrl}}/v1/hl7/messages
+Content-Type: application/hl7-v2
+x-functions-key: {{functionKey}}
+X-Message-Id: test-short-msh
+
+MSH|^~\&|GLS|LAB
+
+###
+
+### 8. Missing function key — expect 401 Unauthorized
+POST {{baseUrl}}/v1/hl7/messages
+Content-Type: application/hl7-v2
+X-Message-Id: test-no-auth
+
+MSH|^~\&|GLS|LAB|MIRROR|TEST|20260219120000||ORM^O01|MSG_NOAUTH|P|2.4

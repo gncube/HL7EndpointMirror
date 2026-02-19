@@ -1,0 +1,9 @@
+### HL7 Endpoint Mirror — Health Check
+### No authentication required
+
+@baseUrl = http://localhost:7071/api
+
+# ---
+
+### GET Health — expect 200 + {"status":"healthy"}
+GET {{baseUrl}}/v1/health
