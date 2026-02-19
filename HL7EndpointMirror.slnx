@@ -1,0 +1,5 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/HL7EndpointMirror.Functions/HL7EndpointMirror.Functions.csproj" />
+  </Folder>
+</Solution>
