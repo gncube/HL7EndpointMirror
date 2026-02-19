@@ -17,7 +17,6 @@ builder.UseMiddleware<CorrelationMiddleware>();
 
 // Telemetry configuration
 builder.Services
-    .AddApplicationInsightsTelemetryWorkerService()
     .ConfigureFunctionsApplicationInsights();
 
 // Chaos config — bound from "ChaosMode" section, validated on startup
