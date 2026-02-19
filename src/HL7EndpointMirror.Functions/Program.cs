@@ -31,6 +31,7 @@ builder.Services
 builder.Services.AddSingleton<IHl7Parser, Hl7Parser>();
 builder.Services.AddSingleton<IAckGeneratorService, AckGeneratorService>();
 builder.Services.AddSingleton<IRandomProvider, RandomProvider>();
-builder.Services.AddSingleton<IChaosService, ChaosService>();
+builder.Services.AddScoped<IChaosService, ChaosService>();
+builder.Services.AddSingleton<IChaosConfigStore, InMemoryChaosConfigStore>();
 
 builder.Build().Run();
