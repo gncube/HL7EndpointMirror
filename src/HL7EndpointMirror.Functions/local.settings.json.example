@@ -1,0 +1,13 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
+    "APPLICATIONINSIGHTS_CONNECTION_STRING": "<your-app-insights-connection-string>",
+    "ChaosMode__IsEnabled": "false",
+    "ChaosMode__FailureRatePercent": "10",
+    "ChaosMode__DefaultErrorType": "500",
+    "ChaosMode__LatencySimulation__IsEnabled": "false",
+    "ChaosMode__LatencySimulation__DelayMs": "0"
+  }
+}
